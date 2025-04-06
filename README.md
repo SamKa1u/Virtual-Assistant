@@ -1,5 +1,5 @@
 <h1>
-  A Virtual Assistant utlizing a locally hosted LLM to tackle NLP and return a tool based on user queries
+  A Virtual Assistant utilizing a locally hosted LLM to tackle NLP and return a tool based on user queries
 </h1>
 
 <div>
