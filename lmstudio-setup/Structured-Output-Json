@@ -1,5 +1,5 @@
 {
-  "$id": "Trinity",
+  "$id": "{Assistan name}",
   "$schema": "Virtual_assistant_response_schema",
   "title": "Response",
   "type": "object",
