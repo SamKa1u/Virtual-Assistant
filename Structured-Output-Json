@@ -1,0 +1,12 @@
+{
+  "$id": "Trinity",
+  "$schema": "Virtual_assistant_response_schema",
+  "title": "Response",
+  "type": "object",
+  "properties": {
+    "tool_calls": {
+      "type": "string",
+      "description": "The tool the assistant picked for the user."
+    }
+  }
+}
