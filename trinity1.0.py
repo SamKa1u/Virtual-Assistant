@@ -3,10 +3,11 @@ from Tools.calculators.electronics_calcs.semi_cond_current_calc import *
 from Tools.calculators.matrix_calcs import *
 from Tools.GeoCoding.WeatherAPIs import *
 from Tools.pattern_match import *
+from Tools.tool_props import *
+from Tools.TTS.TTS import say
 from openai import OpenAI
 import subprocess as sub
 import time
-
 """
     API endpoints
 """
@@ -20,13 +21,13 @@ def server_handling(task):
             load = sub.run("lms server start", shell=True)
             return_code = load.returncode
             if return_code != 0:
-                print("There was an error starting the model server")
+                display("There was an error starting the model server")
                 exit()
         case "close":
             close = sub.run("lms server stop", shell=True)
             return_code = close.returncode
             if return_code != 0:
-                print("There was an error closing the model server")
+                display("There was an error closing the model server")
 
 #server status
 try:
@@ -38,9 +39,9 @@ except Exception as e:
 def get_weather(text):
     forecast, location, location_error = weather(text)
     if not location_error:
-        print(f"The forecast for {location} is {forecast[4]}, the high will be {forecast[2]}, the low will be {forecast[3]}, the current temp is {forecast[0]}, and it feels like {forecast[1]}")
+        display(f"The forecast for {location} is {forecast[4]}, the high will be {forecast[2]}, the low will be {forecast[3]}, the current temp is {forecast[0]}, and it feels like {forecast[1]}")
     else:
-        print("There was an error retrieving the forecast")
+        display("There was an error retrieving the forecast")
 
 def get_matrix():
     matrix_calc()
@@ -60,122 +61,17 @@ ADD FUNCTIONALITY to request action from embedded trash ESP
 def get_trashcan():
     return 0
 
-weather_tool = {
-    "type": "function",
-    "function": {
-        "name": "get_weather",
-        "description": (
-            "returns a weather forecast by making a request to an api endpoint."
-            "Always pick this tool when the user is asking for something with weather forecasting and they supply a comma seperated city and state"
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "city": {
-                    "type": "string",
-                    "description": "the name of city the weather forecast is being requested for",
-                },
-                "state": {
-                    "type": "string",
-                    "description": "the name of the state the weather forecast is being requested for",
-                },
-            },
-            "required": ["city"],
-        },
-    },
-}
+def display(text):
+    print(text)
+    say(text)
 
-matrix_tool = {
-    "type": "function",
-    "function": {
-        "name": "get_matrix",
-        "description": (
-            "find the determinant cofactors and minors of a given 3x3 matrix"
-            "Always use when matrices are mentioned"
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "matrix": {
-                    "type": "boolean",
-                    "description": "matrices explicitly mentioned",
-                },
-            },
-            "required": ["matrix"],
-        },
-    },
-}
 
-isat_tool = {
-    "type": "function",
-    "function": {
-        "name": "get_Isat",
-        "description": (
-            "calculate the the saturation current of a transistor"
-            "Always use this if the user is asking for something with saturation current"
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "saturation": {
-                    "type": "boolean",
-                    "description": "saturation current explicitly mentioned",
-                },
-            },
-            "required": ["saturation"],
-        },
-    },
-}
-
-trashcan_tool = {
-    "type": "function",
-    "function": {
-        "name": "get_trashcan",
-        "description": (
-            "opens auto trashcan"
-            "Always use this if the user is asking for something with a trash can"
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "open": {
-                    "type": "boolean",
-                    "description": "open the trash",
-                },
-            },
-            "required": ["open"],
-        },
-    },
-}
-
-equivalent_resistance_tool = {
-    "type": "function",
-    "function": {
-        "name": "get_Requivalent_0_5",
-        "description": (
-            "Computes the equivalent resistance of two resistors based on their configuration"
-            "Always use this if the user gives resistor values for r1 and r2 and a configuration"
-        ),
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "configuration": {
-                    "type": "string",
-                    "description": "how r1 and r2 are connected either series or parallel",
-                },
-                "R1": {
-                    "type": "float",
-                    "description": "r1 value in ohms",
-                },
-                "R2": {
-                    "type": "float",
-                    "description": "r2 value in ohms",
-                },
-            },
-            "required": ["configuration"],
-        },
-    },
-}
+# call tool properties
+weather_tool = weatherTool()
+matrix_tool = matrixTool()
+isat_tool = satTool()
+trashcan_tool = trashTool()
+equivalent_resistance_tool = ReqTool()
 
 def chat(text):
     # Point to the local server
@@ -193,7 +89,7 @@ def chat(text):
         tool_handler(response.content, text)
         return response.content
     else:
-        print("the model could not generate a response")
+        display("the model could not generate a response")
 
 def tool_handler(response, text):
     weather = get_pattern_match('.*"(get_weather)',response)
@@ -202,29 +98,37 @@ def tool_handler(response, text):
     trash = get_pattern_match('.*"(get_trashcan)',response)
     req =  get_pattern_match('.*"(get_[R-r]eq)',response)
     if weather is not None:
+        display("Forecasting")
         get_weather(text)
     elif matrix is not None:
+        display("Opening matrix calc")
         get_matrix()
     elif i_sat is not None:
+        display("Opening saturation current calc")
         get_Isat()
     elif req is not None:
-        print(req)
+        display("Opening equivalent resistance calc")
         get_Req(text)
     elif trash is not None:
-        print(trash)
+        display("Opening trash can")
         # get_trashcan()
     else:
         print(f"---------------------No tool called---------------------\n{response}")
+        say(response)
 
 
 
 def main():
+    display('Who am I speaking to?')
+    text = str(input(":"))
+    display(f'How can I help you {text}?')
     while True:
-        text = str(input("Enter a request: "))
+        text = str(input("Enter your request: "))
         if text == "quit":
             break
         response = chat(text)
         time.sleep(1)
+    display("Closing connection, Goodbye")
     server_handling("close")
 
 if __name__ == "__main__":
