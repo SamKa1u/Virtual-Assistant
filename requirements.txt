@@ -1,3 +1,5 @@
 openai 
 numpy
 requests
+SpeechRecognition
+pyttsx3
